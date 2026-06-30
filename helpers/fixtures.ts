@@ -1,6 +1,7 @@
 import { test as base, expect, Page } from '@playwright/test';
 import { createBrowser } from './browser';
 import { isWebMcpAvailable, listTools, isToolExecutionBroken } from './webmcp';
+import { mockEthProvider, MockWalletConfig } from './mock-wallet';
 
 export { expect };
 
@@ -15,10 +16,14 @@ export const APP_BASE_URL =
 interface WebMcpFixtures {
   dmfPage: Page;
   executionBroken: boolean;
+  /** When true, injects a mock window.ethereum before navigation */
+  withMockWallet: boolean;
+  /** Optional wallet config (address, chainId) */
+  walletConfig: Partial<MockWalletConfig>;
 }
 
 export const test = base.extend<WebMcpFixtures>({
-  dmfPage: async ({ browser: _unused }, use) => {
+  dmfPage: async ({ withMockWallet, walletConfig }, use) => {
     const browser = await createBrowser();
     const context = await browser.newContext({
       viewport: { width: 1280, height: 800 },
@@ -26,11 +31,15 @@ export const test = base.extend<WebMcpFixtures>({
     });
     const page = await context.newPage();
 
-    // Wrap goto to wait for WebMCP tools to register after navigation
+    // Inject mock wallet before any page JS runs
+    if (withMockWallet) {
+      await mockEthProvider(page, walletConfig);
+    }
+
+    // Wrap goto to wait for WebMCP provider useEffect to register tools
     const originalGoto = page.goto.bind(page);
     page.goto = async (url, options) => {
       const result = await originalGoto(url, { waitUntil: 'networkidle', ...options });
-      // WebMCP provider registers tools in useEffect — give it time
       await page.waitForTimeout(1500);
       return result;
     };
@@ -40,8 +49,10 @@ export const test = base.extend<WebMcpFixtures>({
     await browser.close();
   },
 
+  withMockWallet: [false, { option: true }],
+  walletConfig: [{}, { option: true }],
+
   executionBroken: async ({ dmfPage }, use) => {
-    // Navigate to a known site first to check execution
     await dmfPage.goto('https://dmfam.org');
     const broken = await isToolExecutionBroken(dmfPage);
     await use(broken);
@@ -89,17 +100,3 @@ export const APP_TOOLS_T2_T3 = [
 
 export const SITE_TOOL_COUNT = SITE_TOOLS.length; // 8
 export const APP_TOOL_COUNT = APP_TOOLS_T0_T1.length + APP_TOOLS_T2_T3.length; // 18
-
-/**
- * Conditional test — only runs if tool execution is available.
- * Detects the Chrome 151 V2 executeTool regression and skips gracefully.
- */
-export function testIfExecutionWorks(name: string, fn: Function) {
-  test(name, async ({ executionBroken }, ...args) => {
-    if (executionBroken) {
-      console.warn(`[SKIP] "${name}" — Chrome V2 executeTool regression (Chrome 151 bug)`);
-      return;
-    }
-    await (fn as any)(...args);
-  });
-}
