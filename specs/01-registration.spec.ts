@@ -5,7 +5,7 @@
  * No extra tools. Every tool has name, description, inputSchema.
  */
 import { expect } from '@playwright/test';
-import { test, SITE_TOOLS, APP_TOOLS_T0_T1, APP_TOOLS_T2_T3, SITE_TOOL_COUNT, APP_TOOL_COUNT } from '../helpers/fixtures';
+import { test, APP_BASE_URL, SITE_TOOLS, APP_TOOLS_T0_T1, APP_TOOLS_T2_T3, SITE_TOOL_COUNT, APP_TOOL_COUNT } from '../helpers/fixtures';
 import { listTools } from '../helpers/webmcp';
 
 // ---------------------------------------------------------------------------
@@ -34,7 +34,9 @@ test('dmfam.org: every tool has name, description, and inputSchema', async ({ dm
     expect(typeof t.description).toBe('string');
     expect(t.description.length).toBeGreaterThan(0);
     expect(t.inputSchema).toBeDefined();
-    expect(t.inputSchema).toHaveProperty('type', 'object');
+    // V2 API returns inputSchema as JSON string; V1 returns parsed object
+    const schema = typeof t.inputSchema === 'string' ? JSON.parse(t.inputSchema) : t.inputSchema;
+    expect(schema).toHaveProperty('type', 'object');
   }
 });
 
@@ -43,7 +45,7 @@ test('dmfam.org: every tool has name, description, and inputSchema', async ({ dm
 // ---------------------------------------------------------------------------
 
 test('app.dmfam.org: all 18 tools registered', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const tools = await listTools(dmfPage);
   const names = tools.map((t) => t.name);
   const expected = [...APP_TOOLS_T0_T1, ...APP_TOOLS_T2_T3];
@@ -51,13 +53,13 @@ test('app.dmfam.org: all 18 tools registered', async ({ dmfPage }) => {
 });
 
 test('app.dmfam.org: no unexpected extra tools', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const tools = await listTools(dmfPage);
   expect(tools.length).toBe(APP_TOOL_COUNT);
 });
 
 test('app.dmfam.org: every tool has name, description, and inputSchema', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const tools = await listTools(dmfPage);
   for (const t of tools) {
     expect(typeof t.name).toBe('string');
@@ -65,6 +67,8 @@ test('app.dmfam.org: every tool has name, description, and inputSchema', async (
     expect(typeof t.description).toBe('string');
     expect(t.description.length).toBeGreaterThan(0);
     expect(t.inputSchema).toBeDefined();
-    expect(t.inputSchema).toHaveProperty('type', 'object');
+    // V2 API returns inputSchema as JSON string; V1 returns parsed object
+    const schema = typeof t.inputSchema === 'string' ? JSON.parse(t.inputSchema) : t.inputSchema;
+    expect(schema).toHaveProperty('type', 'object');
   }
 });

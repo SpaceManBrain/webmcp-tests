@@ -7,7 +7,15 @@
  * Tests stop at the wallet signature gate — no real tokens are moved.
  */
 import { expect } from '@playwright/test';
-import { test } from '../helpers/fixtures';
+import { test, APP_BASE_URL } from '../helpers/fixtures';
+import { isToolExecutionBroken } from '../helpers/webmcp';
+
+test.beforeAll(async ({ dmfPage }) => {
+  await dmfPage.goto(APP_BASE_URL);
+  const broken = await isToolExecutionBroken(dmfPage);
+  test.skip(broken, 'Chrome 151 V2 executeTool regression — tools register but cannot be called');
+});
+
 import { callTool, parseResponse } from '../helpers/webmcp';
 import { assertSuccess, assertValidResponse, assertPositiveNumber } from '../helpers/assertions';
 
@@ -16,7 +24,7 @@ import { assertSuccess, assertValidResponse, assertPositiveNumber } from '../hel
 // ---------------------------------------------------------------------------
 
 test('app_configure_swap: sets swap parameters without error', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   await callTool(dmfPage, 'app_set_mode', { mode: 'swap' });
 
   const r = await callTool(dmfPage, 'app_configure_swap', {
@@ -34,7 +42,7 @@ test('app_configure_swap: sets swap parameters without error', async ({ dmfPage 
 // ---------------------------------------------------------------------------
 
 test('app_preview_swap: returns quote from Relay API', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   await callTool(dmfPage, 'app_set_mode', { mode: 'swap' });
 
   // Configure first
@@ -65,7 +73,7 @@ test('app_preview_swap: returns quote from Relay API', async ({ dmfPage }) => {
 // ---------------------------------------------------------------------------
 
 test('app_swap_full_flow: configure → preview → confirm → execute', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   await callTool(dmfPage, 'app_set_mode', { mode: 'swap' });
 
   // Step 1: Configure

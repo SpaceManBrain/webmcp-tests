@@ -4,7 +4,15 @@
  * Verify tools handle bad inputs gracefully — validation errors, not crashes.
  * Every error path should return a structured error, not throw unhandled.
  */
-import { expect, test } from '../helpers/fixtures';
+import { expect, test, APP_BASE_URL } from '../helpers/fixtures';
+import { isToolExecutionBroken } from '../helpers/webmcp';
+
+test.beforeAll(async ({ dmfPage }) => {
+  await dmfPage.goto(APP_BASE_URL);
+  const broken = await isToolExecutionBroken(dmfPage);
+  test.skip(broken, 'Chrome 151 V2 executeTool regression — tools register but cannot be called');
+});
+
 import { callTool } from '../helpers/webmcp';
 import { assertGracefulError, assertValidResponse } from '../helpers/assertions';
 
@@ -13,25 +21,25 @@ import { assertGracefulError, assertValidResponse } from '../helpers/assertions'
 // ---------------------------------------------------------------------------
 
 test('app_preview_buy: missing arguments returns graceful error', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_preview_buy', {});
   assertGracefulError(r);
 });
 
 test('app_preview_sell: missing arguments returns graceful error', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_preview_sell', {});
   assertGracefulError(r);
 });
 
 test('app_set_buy_amount: empty amount returns graceful error', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_set_buy_amount', { usdcAmount: '' });
   assertGracefulError(r);
 });
 
 test('app_set_dmf_tab: invalid tab returns graceful error', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_set_dmf_tab', { tab: 'invalid_tab_xyz' });
   // The tool may accept it gracefully — either way, response should be valid
   assertValidResponse(r);
@@ -42,13 +50,13 @@ test('app_set_dmf_tab: invalid tab returns graceful error', async ({ dmfPage }) 
 // ---------------------------------------------------------------------------
 
 test('app_set_buy_amount: negative amount returns graceful error', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_set_buy_amount', { usdcAmount: '-50' });
   assertGracefulError(r);
 });
 
 test('app_set_buy_amount: non-numeric string returns graceful error', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_set_buy_amount', { usdcAmount: 'abc' });
   assertGracefulError(r);
 });
@@ -58,7 +66,7 @@ test('app_set_buy_amount: non-numeric string returns graceful error', async ({ d
 // ---------------------------------------------------------------------------
 
 test('app_execute_buy: absurd amount returns graceful error', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_execute_buy', {
     usdcAmount: '999999999999',
     confirmToken: 'test-token',
@@ -68,7 +76,7 @@ test('app_execute_buy: absurd amount returns graceful error', async ({ dmfPage }
 });
 
 test('app_configure_swap: zero amount returns graceful error', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   await callTool(dmfPage, 'app_set_mode', { mode: 'swap' });
   const r = await callTool(dmfPage, 'app_configure_swap', {
     fromChainId: 8453,
@@ -86,7 +94,7 @@ test('app_configure_swap: zero amount returns graceful error', async ({ dmfPage 
 // ---------------------------------------------------------------------------
 
 test('app_read_page_state: shows wallet as disconnected', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_read_page_state', {});
   assertValidResponse(r);
   const text = r.content[0].text.toLowerCase();

@@ -5,7 +5,15 @@
  * These tests prove the tools return real data, not mock defaults.
  */
 import { expect } from '@playwright/test';
-import { test } from '../helpers/fixtures';
+import { test, APP_BASE_URL } from '../helpers/fixtures';
+import { isToolExecutionBroken } from '../helpers/webmcp';
+
+test.beforeAll(async ({ dmfPage }) => {
+  await dmfPage.goto(APP_BASE_URL);
+  const broken = await isToolExecutionBroken(dmfPage);
+  test.skip(broken, 'Chrome 151 V2 executeTool regression — tools register but cannot be called');
+});
+
 import { callTool, parseResponse } from '../helpers/webmcp';
 import { assertSuccess, assertPositiveBigNumber } from '../helpers/assertions';
 
@@ -48,7 +56,7 @@ test('site_get_protocol_facts returns protocol description', async ({ dmfPage })
 // ---------------------------------------------------------------------------
 
 test('app_get_backing: backing per token is positive', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_get_backing', {});
   const data = assertSuccess<any>(r);
   // backingPerToken or backing_per_token
@@ -58,7 +66,7 @@ test('app_get_backing: backing per token is positive', async ({ dmfPage }) => {
 });
 
 test('app_get_balances returns numeric strings for usdc and dmfUsd', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_get_balances', {});
   const data = assertSuccess<any>(r);
   expect(typeof data.usdc).toBe('string');
@@ -68,7 +76,7 @@ test('app_get_balances returns numeric strings for usdc and dmfUsd', async ({ dm
 });
 
 test('app_preview_buy: estimatedReceive > 0 and fee > 0', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_preview_buy', { usdcAmount: '100' });
   const data = assertSuccess<any>(r);
   expect(data).toBeDefined();
@@ -80,7 +88,7 @@ test('app_preview_buy: estimatedReceive > 0 and fee > 0', async ({ dmfPage }) =>
 });
 
 test('app_preview_sell: estimatedReceive > 0 and fee > 0', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_preview_sell', { dmfUsdAmount: '100' });
   const data = assertSuccess<any>(r);
   const est = data.estimatedReceive ?? data.estimated_receive ?? data.output;
@@ -90,7 +98,7 @@ test('app_preview_sell: estimatedReceive > 0 and fee > 0', async ({ dmfPage }) =
 });
 
 test('app_list_chains returns array of objects with chainId', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_list_chains', {});
   const data = assertSuccess<any>(r);
   const chains = Array.isArray(data) ? data : data.chains ?? data.chainIds ?? [];

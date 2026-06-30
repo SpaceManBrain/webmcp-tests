@@ -6,7 +6,15 @@
  * and structural consistency.
  */
 import { expect } from '@playwright/test';
-import { test } from '../helpers/fixtures';
+import { test, APP_BASE_URL } from '../helpers/fixtures';
+import { isToolExecutionBroken } from '../helpers/webmcp';
+
+test.beforeAll(async ({ dmfPage }) => {
+  await dmfPage.goto(APP_BASE_URL);
+  const broken = await isToolExecutionBroken(dmfPage);
+  test.skip(broken, 'Chrome 151 V2 executeTool regression — tools register but cannot be called');
+});
+
 import { callTool, parseResponse } from '../helpers/webmcp';
 import { assertValidResponse } from '../helpers/assertions';
 
@@ -61,7 +69,7 @@ test('site_ask_support returns answer from Susan', async ({ dmfPage }) => {
 // ---------------------------------------------------------------------------
 
 test('app_read_page_state returns app state', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_read_page_state', {});
   assertValidResponse(r);
   const data = parseResponse<any>(r);
@@ -70,13 +78,13 @@ test('app_read_page_state returns app state', async ({ dmfPage }) => {
 });
 
 test('app_get_backing returns backing per token', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_get_backing', {});
   assertValidResponse(r);
 });
 
 test('app_get_balances returns balance object', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_get_balances', {});
   assertValidResponse(r);
   const data = parseResponse<any>(r);
@@ -86,19 +94,19 @@ test('app_get_balances returns balance object', async ({ dmfPage }) => {
 });
 
 test('app_preview_buy returns estimate with fee', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_preview_buy', { usdcAmount: '100' });
   assertValidResponse(r);
 });
 
 test('app_preview_sell returns estimate with fee', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_preview_sell', { dmfUsdAmount: '100' });
   assertValidResponse(r);
 });
 
 test('app_list_chains returns chain array', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
   const r = await callTool(dmfPage, 'app_list_chains', {});
   assertValidResponse(r);
   const data = parseResponse<any>(r);

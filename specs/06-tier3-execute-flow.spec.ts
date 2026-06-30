@@ -9,7 +9,15 @@
  * In headless mode without a wallet, execution will stop at pending_wallet
  * or show a graceful error. That's the expected automation endpoint.
  */
-import { test } from '../helpers/fixtures';
+import { test, APP_BASE_URL } from '../helpers/fixtures';
+import { isToolExecutionBroken } from '../helpers/webmcp';
+
+test.beforeAll(async ({ dmfPage }) => {
+  await dmfPage.goto(APP_BASE_URL);
+  const broken = await isToolExecutionBroken(dmfPage);
+  test.skip(broken, 'Chrome 151 V2 executeTool regression — tools register but cannot be called');
+});
+
 import { callTool, parseResponse } from '../helpers/webmcp';
 import { assertSuccess, assertValidResponse } from '../helpers/assertions';
 
@@ -18,7 +26,7 @@ import { assertSuccess, assertValidResponse } from '../helpers/assertions';
 // ---------------------------------------------------------------------------
 
 test('app_request_confirm returns a confirmToken for buy', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
 
   // Set up the buy state first
   await callTool(dmfPage, 'app_set_mode', { mode: 'dmf' });
@@ -46,7 +54,7 @@ test('app_request_confirm returns a confirmToken for buy', async ({ dmfPage }) =
 // ---------------------------------------------------------------------------
 
 test('app_request_confirm returns a confirmToken for sell', async ({ dmfPage }) => {
-  await dmfPage.goto('/');
+  await dmfPage.goto(APP_BASE_URL);
 
   await callTool(dmfPage, 'app_set_mode', { mode: 'dmf' });
   await callTool(dmfPage, 'app_set_dmf_tab', { tab: 'sell' });
